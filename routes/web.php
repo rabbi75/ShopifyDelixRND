@@ -8,5 +8,4 @@ Route::get('/', function () {
 });
 
 Route::post('/shopify/order-webhook', [ShopifyWebhookController::class, 'handleOrder']);
-
 Route::post('/shopify/fulfillment-webhook', [ShopifyWebhookController::class, 'handleFulfillment']);

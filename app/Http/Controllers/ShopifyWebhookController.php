@@ -5,11 +5,29 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class ShopifyWebhookController extends Controller
 {
+    protected function isValidShopifyWebhook(Request $request): bool
+    {
+        $webHookSecrate = '0a45fda37ee8d699ea12a1702ee5eb7c5d555734b658c1e6534c137afb521c59';
+
+        $hmacHeader = $request->header('X-Shopify-Hmac-Sha256');
+        $calculatedHmac = base64_encode(
+            hash_hmac('sha256', $request->getContent(), $webHookSecrate, true)
+        );
+
+        return hash_equals($hmacHeader, $calculatedHmac);
+    }
+
     public function handleOrder(Request $request)
     {
+        if (!$this->isValidShopifyWebhook($request)) {
+            Log::warning('Shopify webhook signature verification failed.');
+            return response('Invalid Signature', 401);
+        }
+
         $data = $request->all();
 
         Order::create([
@@ -30,6 +48,11 @@ class ShopifyWebhookController extends Controller
 
     public function handleFulfillment(Request $request)
     {
+        if (!$this->isValidShopifyWebhook($request)) {
+            Log::warning('Shopify webhook signature verification failed.');
+            return response('Invalid Signature', 401);
+        }
+
         $data = $request->all();
 
         $orderId = $data['order_id'] ?? null;
